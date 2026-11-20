@@ -1,107 +1,18 @@
-# =============================================================
-#  「栖邻」后端主配置
-#  本地默认即可启动（MySQL 已就绪、无需 Redis）
-# =============================================================
 server:
-  port: ${SERVER_PORT:8080}
-  servlet:
-    session:
-      timeout: 2h
-      cookie:
-        name: QILIN_SID
-        http-only: true      # JS 读不到 Cookie，防 XSS 偷会话
-        same-site: lax       # 前后端同站部署时 Lax 即可；跨站需 None + Secure
-        path: /
-  error:
-    include-message: never
-    include-stacktrace: never
+  port: 8080
 
 spring:
   application:
     name: qilin-server
-
-  # -----------------------------------------------------------
-  # 为什么排除 SessionAutoConfiguration：
-  #   classpath 里有 spring-session-data-redis 时，Boot 会默认启用 Redis Session，
-  #   本机没装 Redis 就会导致所有请求失败。这里排除自动配置，
-  #   默认改用容器内存 Session；需要 Redis 时用 redis profile（见 RedisSessionConfig）。
-  # -----------------------------------------------------------
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
-
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/qilin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:123456}
-    hikari:
-      pool-name: QilinHikariPool
-      minimum-idle: 2
-      maximum-pool-size: 10
-      connection-timeout: 5000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-  # 默认 profile 下不会连接 Redis，只有 redis profile 才会用到
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
-      timeout: 2s
-
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
-    serialization:
-      write-dates-as-timestamps: false
-    default-property-inclusion: non_null
 
-# -------------------------------------------------------------
-# MyBatis-Plus
-# -------------------------------------------------------------
+  datasource:
+    url: jdbc:mysql://localhost:3306/qilin?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    
 mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.qilin.module
   configuration:
     map-underscore-to-camel-case: true
-  global-config:
-    banner: false
-    db-config:
-      id-type: auto
-      logic-delete-field: deleted      # 实体里有 deleted 字段时自动拼 deleted = 0
-      logic-delete-value: 1
-      logic-not-delete-value: 0
-
-# -------------------------------------------------------------
-# 接口文档：启动后访问 http://localhost:8080/doc.html
-# -------------------------------------------------------------
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-knife4j:
-  enable: true
-  setting:
-    language: zh_cn
-
-# -------------------------------------------------------------
-# 项目自定义配置
-# -------------------------------------------------------------
-qilin:
-  cors:
-    # 前端 Vue 开发服务器地址；多个用英文逗号分隔
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-  init:
-    # 首次启动时为“空密码”账号写入的初始密码；上线前务必修改
-    default-password: "123456"
-
-logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-init}] %logger{40} - %msg%n"
-  level:
-    com.qilin: debug
-    org.springframework.web: info
