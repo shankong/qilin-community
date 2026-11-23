@@ -1,5 +1,7 @@
 package com.qilin.system.common;
 
+import org.slf4j.MDC;
+
 import lombok.Getter;
 
 @Getter
@@ -7,11 +9,13 @@ public class Result<T> {
     private final int code;
     private final String msg;
     private final T data;
+    private final String traceId;
 
     private Result(int code, String msg, T data) {
         this.code = code;
         this.msg = msg;
         this.data = data;
+        this.traceId = MDC.get(TraceIdFilter.TRACE_ID);
     }
 
     public static <T> Result<T> success(T data) {
