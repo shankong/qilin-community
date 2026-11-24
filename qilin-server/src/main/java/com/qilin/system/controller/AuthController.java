@@ -1,24 +1,33 @@
 package com.qilin.system.controller;
 
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 import com.qilin.system.common.Result;
 import com.qilin.system.dto.request.AuthLoginRequest;
+import com.qilin.system.dto.request.AuthUpdatePasswordRequest;
 import com.qilin.system.service.AuthService;
 import com.qilin.system.vo.AuthLoginVO;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
+
 import jakarta.validation.Valid;
 
+import java.util.List;
+
+import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController
@@ -26,6 +35,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AuthController {
     @Resource 
     private AuthService authService;
+
+    @Resource
+    private SecurityContextRepository securityContextRepository;
     
     /**
      * 登陆接口
@@ -36,26 +48,25 @@ public class AuthController {
     @PostMapping("/login")
     public Result<AuthLoginVO> login(
             @Valid @RequestBody AuthLoginRequest request, 
-            HttpServletRequest servletRequest) {
-        AuthLoginVO user = authService.authLogin(request);
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
 
-        /**
-         * 查找用户的session
-         * 如果存在则更新session中的用户信息
-         * 如果不存在则创建新的session
-         */
-        HttpSession session = servletRequest.getSession(true);
+        AuthLoginVO user = authService.authLogin(request);
         /**
          * 登陆成功后，更新session id
          * 避免session id被猜测，导致安全问题
          */
         servletRequest.changeSessionId();
-        /**
-         * 登陆成功后，将用户id存储到session中
-         * 用于后续的权限校验
-         * 例如：在拦截器中校验用户是否登录
-         */
-        session.setAttribute("LOGIN_USER_ID", user.getId());
+        
+        // 把当前用户放进 Spring Security 的认证上下文
+        Authentication authentication = 
+            UsernamePasswordAuthenticationToken.authenticated(user.getId(), null, List.of());
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+
+        // 保存信息到session，用于后续的权限校验
+        securityContextRepository.saveContext(context, servletRequest, servletResponse);
         
         return Result.success(user);
     }
@@ -68,27 +79,44 @@ public class AuthController {
      */
     @GetMapping("/me")
     public ResponseEntity<Result<Long>> me(
-        @SessionAttribute(name = "LOGIN_USER_ID", required = false) Long userId
+        Authentication authentication
     ) {
-        if(userId == null){
+        if(authentication == null){
              return ResponseEntity.status(401).body(Result.error(401, "请先登录"));
         }
-        return ResponseEntity.ok(Result.success(userId));
+        return ResponseEntity.ok(Result.success((Long) authentication.getPrincipal()));
     }
 
     /**
      * 退出登录接口
      * @param servletRequest
-     * @return
+     * @return 退出登录成功后的用户信息
      */
     @PostMapping("/logout")
-    public Result<Void> logout(HttpServletRequest servletRequest) {
-        HttpSession session = servletRequest.getSession(false);
+    public Result<Void> logout(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        Authentication authentication
+    ) {
+        new SecurityContextLogoutHandler().logout(request, response, authentication);
+        return Result.success();
+    }
 
-        if(session != null){
-            // 退出登录后，将session中的用户信息清除
-            session.invalidate();
-        }
+    /**
+     * 更新密码接口
+     * @param userId
+     * @param request
+     * @return 更新密码成功后的用户信息
+     */
+    @PutMapping("/password")
+    public Result<Void> updatePassword(
+        Authentication authentication,
+        HttpServletRequest request,
+        HttpServletResponse response,
+        @Valid @RequestBody AuthUpdatePasswordRequest authUpdatePasswordRequest
+    ) {
+        authService.updatePassword((Long)authentication.getPrincipal(), authUpdatePasswordRequest);
+        new SecurityContextLogoutHandler().logout(request, response, authentication);
         return Result.success();
     }
 }

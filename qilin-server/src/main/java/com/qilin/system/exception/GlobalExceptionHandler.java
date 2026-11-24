@@ -46,4 +46,15 @@ public class GlobalExceptionHandler {
         log.error("请求参数校验异常: {}", ex);
         return ResponseEntity.badRequest().body(Result.error(400, msg));
     }
+
+    /**
+     * 处理业务异常
+     * @param ex
+     * @return 业务异常响应
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Result<Void>> handleBusiness(BusinessException ex) {
+        log.warn("业务异常: {}", ex.getMessage());
+        return ResponseEntity.status(ex.getCode()).body(Result.error(ex.getCode(), ex.getMessage()));
+    }
 }
