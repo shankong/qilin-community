@@ -15,6 +15,10 @@ target/
 .project
 .classpath
 
+# ===== 本地文档 =====
+*.md
+qilin-server/src/test/java/com/qilin/test/
+
 # ===== 前端 =====
 node_modules/
 dist/
