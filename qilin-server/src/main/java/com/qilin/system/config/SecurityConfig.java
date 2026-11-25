@@ -11,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qilin.system.common.Result;
@@ -50,6 +51,7 @@ public class SecurityConfig {
             )
             // 开启csrf保护，并将public urls添加到忽略列表中，避免csrf保护对public urls生效
             .csrf(csrf -> csrf
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .ignoringRequestMatchers(CSRF_IGNORE_URLS)
             )
 

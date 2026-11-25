@@ -29,6 +29,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 
 
@@ -54,11 +55,11 @@ public class AuthController {
             HttpServletResponse servletResponse) {
 
         AuthLoginVO user = authService.authLogin(request);
-        /**
-         * 登陆成功后，更新session id
-         * 避免session id被猜测，导致安全问题
-         */
-        servletRequest.changeSessionId();
+
+        // 已有会话才需要轮换 ID。首次登录由 saveContext 创建新会话。
+        if (servletRequest.getSession(false) != null) {
+            servletRequest.changeSessionId();
+        }
 
         List<String> roleCodes = authService.findRoleCodes(user.getId());
 
@@ -93,6 +94,11 @@ public class AuthController {
              return ResponseEntity.status(401).body(Result.error(401, "请先登录"));
         }
         return ResponseEntity.ok(Result.success((Long) authentication.getPrincipal()));
+    }
+
+    @GetMapping("/csrf")
+    public CsrfToken csrf(CsrfToken csrfToken) {
+        return csrfToken;
     }
 
     /**
