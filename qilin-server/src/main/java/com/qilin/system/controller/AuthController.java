@@ -22,8 +22,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
@@ -31,7 +33,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
     @Resource 
     private AuthService authService;
@@ -57,10 +59,16 @@ public class AuthController {
          * 避免session id被猜测，导致安全问题
          */
         servletRequest.changeSessionId();
+
+        List<String> roleCodes = authService.findRoleCodes(user.getId());
+
+        List<SimpleGrantedAuthority> authorities = roleCodes.stream()
+            .map(roleCode -> new SimpleGrantedAuthority("ROLE_" + roleCode))
+            .collect(Collectors.toList());
         
         // 把当前用户放进 Spring Security 的认证上下文
         Authentication authentication = 
-            UsernamePasswordAuthenticationToken.authenticated(user.getId(), null, List.of());
+            UsernamePasswordAuthenticationToken.authenticated(user.getId(), null, authorities);
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);

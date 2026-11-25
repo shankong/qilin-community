@@ -3,6 +3,7 @@ package com.qilin.system.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,17 +24,18 @@ import jakarta.servlet.http.HttpServletResponse;
  * SecurityConfig
  */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private static final String[] PUBLIC_URLS = {
-        "/auth/login",
-        "/auth/logout"
+        "/api/v1/auth/login",
+        "/api/v1/auth/logout"
     };
 
     private static final String[] CSRF_IGNORE_URLS = {
-        "/auth/login",
-        "/auth/logout",
-        "/auth/password"
+        "/api/v1/auth/login",
+        "/api/v1/auth/logout",
+        "/api/v1/auth/password"
     };
 
     @Bean

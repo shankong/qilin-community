@@ -1,6 +1,7 @@
 package com.qilin.system.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -91,4 +92,16 @@ public class AuthServiceImpl implements AuthService {
         user.setUpdatedAt(LocalDateTime.now());
         authLoginMapper.updateById(user);
     }
+
+    /**    
+     * 根据用户ID查询角色编码列表
+     * @param userId
+     * @return 角色编码列表
+     */
+    @Override
+    public List<String> findRoleCodes(Long userId) {
+        return authLoginMapper.selectRoleCodesByUserId(userId);
+    }
+
+    
 }
