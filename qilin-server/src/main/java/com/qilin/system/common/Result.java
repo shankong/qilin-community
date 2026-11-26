@@ -26,6 +26,10 @@ public class Result<T> {
         return success(null);
     }
 
+    public static <T> Result<T> success(String msg) {
+        return new Result<>(200, msg, null);
+    }
+
     public static <T> Result<T> error(int code, String msg) {
         return new Result<>(code, msg, null);
     }

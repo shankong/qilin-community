@@ -1,6 +1,7 @@
 package com.qilin.system.exception;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,5 +57,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleBusiness(BusinessException ex) {
         log.warn("业务异常: {}", ex.getMessage());
         return ResponseEntity.status(ex.getCode()).body(Result.error(ex.getCode(), ex.getMessage()));
+    }
+
+    /**
+     * 处理请求体不可读异常
+     * @param ex
+     * @return 400 错误响应
+     * 包含错误信息
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> handleUnreadableRequestBody(HttpMessageNotReadableException ex) {
+        log.error("请求体不可读异常: {}", ex);
+        return ResponseEntity.badRequest()
+            .body(Result.error(400, "请提供请求体，并检查 JSON 格式和字段值"));
     }
 }

@@ -10,5 +10,4 @@ import com.qilin.repair.entity.RepairOrder;
  */
 @Mapper 
 public interface RepairOrderMapper extends BaseMapper<RepairOrder>{
-    
 }
