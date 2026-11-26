@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.github.pagehelper.PageInfo;
 import com.qilin.repair.dto.request.CreateRepairOrderRequest;
 import com.qilin.repair.entity.RepairOrder;
 import com.qilin.repair.service.RepairOrderService;
@@ -56,11 +57,13 @@ public class RepairOrderController {
      */
     @PreAuthorize("hasRole('OWNER')")
     @GetMapping("/repair-orders")
-    public Result<List<RepairOrder>> getRepairOrders(
-        Authentication authentication) {
+    public Result<PageInfo<RepairOrder>> getRepairOrders(
+        Authentication authentication,
+        Integer pageNum,
+        Integer pageSize) {
         Long ownerId = (Long) authentication.getPrincipal();
-        List<RepairOrder> orders = repairOrderService.getOrdersByOwnerId(ownerId);
-        if(orders == null || orders.isEmpty()) {
+        PageInfo<RepairOrder> orders = repairOrderService.getOrdersByOwnerId(ownerId, pageNum, pageSize);
+        if(orders == null || orders.getList().isEmpty()) {
             return Result.success("未找到报修单");
         }
         return Result.success(orders);

@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.qilin.repair.dto.request.CreateRepairOrderRequest;
 import com.qilin.repair.entity.RepairOrder;
 import com.qilin.repair.entity.RepairOrderLog;
@@ -80,11 +82,13 @@ public class RepairOrderServiceImpl implements RepairOrderService {
      * @return List<RepairOrder> 业主的报修单列表
      */
     @Override
-    public List<RepairOrder> getOrdersByOwnerId(Long ownerId) {
+    public PageInfo<RepairOrder> getOrdersByOwnerId(Long ownerId, Integer pageNum, Integer pageSize) {
+        PageHelper.startPage(pageNum, pageSize);
+
         LambdaQueryWrapper<RepairOrder> wrapper = new LambdaQueryWrapper<RepairOrder>()
                 .eq(RepairOrder::getOwnerId, ownerId)
                 .orderByDesc(RepairOrder::getCreatedAt);
-        return repairOrderMapper.selectList(wrapper);
+        return new PageInfo<>(repairOrderMapper.selectList(wrapper));
     }
 
     /**
