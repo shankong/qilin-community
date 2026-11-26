@@ -1,6 +1,11 @@
 package com.qilin.repair.controller;
 
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+
+import java.util.List;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -41,5 +46,43 @@ public class RepairOrderController {
             order.getOrderNo(), 
             order.getStatus()
         ));
+    }
+
+    /**
+     * 查询业主所有的报修单
+     * 只有拥有OWNER角色的用户才能查询自己的报修单
+     * @param authentication 当前用户的认证信息
+     * @return 返回业主的报修单列表
+     */
+    @PreAuthorize("hasRole('OWNER')")
+    @GetMapping("/repair-orders")
+    public Result<List<RepairOrder>> getRepairOrders(
+        Authentication authentication) {
+        Long ownerId = (Long) authentication.getPrincipal();
+        List<RepairOrder> orders = repairOrderService.getOrdersByOwnerId(ownerId);
+        if(orders == null || orders.isEmpty()) {
+            return Result.success("未找到报修单");
+        }
+        return Result.success(orders);
+    }
+
+    /**
+     * 查询报修单详情
+     * 只有拥有OWNER角色的用户才能查询自己的报修单详情
+     * @param id 报修单ID
+     * @param authentication 当前用户的认证信息
+     * @return 返回报修单详情对象
+     */
+    @PreAuthorize("hasRole('OWNER')")
+    @GetMapping("/repair-orders/{id}")
+    public Result<RepairOrder> getRepairOrderDetails(
+        @PathVariable Long id,
+        Authentication authentication) {
+        Long ownerId = (Long) authentication.getPrincipal();
+        RepairOrder order = repairOrderService.getOrderDetails(ownerId, id);
+        if(order == null) {
+            return Result.success("未找到该报修单");
+        }
+        return Result.success(order);
     }
 }

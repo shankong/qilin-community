@@ -4,11 +4,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qilin.repair.dto.request.CreateRepairOrderRequest;
 import com.qilin.repair.entity.RepairOrder;
 import com.qilin.repair.entity.RepairOrderLog;
@@ -27,6 +29,12 @@ public class RepairOrderServiceImpl implements RepairOrderService {
     @Resource 
     private RepairOrderLogMapper repairOrderLogMapper;
 
+    /**    
+     * 提交报修单
+     * @param ownerId 用户ID
+     * @param request 创建报修单请求对象
+     * @return RepairOrder 创建的报修单对象
+     */
     @Override
     @Transactional 
     public RepairOrder submitOrder(Long ownerId, CreateRepairOrderRequest request) {
@@ -64,5 +72,32 @@ public class RepairOrderServiceImpl implements RepairOrderService {
 
         // 4. 返回工单对象
         return repairOrder;
+    }
+
+    /**
+     * 查询业主所有的报修单
+     * @param ownerId 用户ID
+     * @return List<RepairOrder> 业主的报修单列表
+     */
+    @Override
+    public List<RepairOrder> getOrdersByOwnerId(Long ownerId) {
+        LambdaQueryWrapper<RepairOrder> wrapper = new LambdaQueryWrapper<RepairOrder>()
+                .eq(RepairOrder::getOwnerId, ownerId)
+                .orderByDesc(RepairOrder::getCreatedAt);
+        return repairOrderMapper.selectList(wrapper);
+    }
+
+    /**
+     * 查询报修单详情
+     * @param ownerId 当前业主ID
+     * @param orderId 报修单ID
+     * @return RepairOrder 报修单详情对象
+     */
+    @Override
+    public RepairOrder getOrderDetails(Long ownerId, Long orderId) {
+        LambdaQueryWrapper<RepairOrder> wrapper = new LambdaQueryWrapper<RepairOrder>()
+                .eq(RepairOrder::getId, orderId)
+                .eq(RepairOrder::getOwnerId, ownerId);
+        return repairOrderMapper.selectOne(wrapper);
     }
 }
