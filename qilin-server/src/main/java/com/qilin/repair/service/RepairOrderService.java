@@ -11,4 +11,6 @@ public interface RepairOrderService {
     PageInfo<RepairOrder> getOrdersByOwnerId(Long ownerId, Integer pageNum, Integer pageSize);
     // 查询报修单详情
     RepairOrder getOrderDetails(Long ownerId, Long orderId);
+    // 管理员派送订单
+    RepairOrder dispatchOrder(Long orderId, Long managerId, Long workerId);
 }

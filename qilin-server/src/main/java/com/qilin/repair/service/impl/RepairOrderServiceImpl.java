@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -16,9 +15,11 @@ import com.github.pagehelper.PageInfo;
 import com.qilin.repair.dto.request.CreateRepairOrderRequest;
 import com.qilin.repair.entity.RepairOrder;
 import com.qilin.repair.entity.RepairOrderLog;
+import com.qilin.repair.enums.RepairOrderStatus;
 import com.qilin.repair.mapper.RepairOrderLogMapper;
 import com.qilin.repair.mapper.RepairOrderMapper;
 import com.qilin.repair.service.RepairOrderService;
+import com.qilin.system.exception.BusinessException;
 
 import jakarta.annotation.Resource;
 
@@ -53,7 +54,7 @@ public class RepairOrderServiceImpl implements RepairOrderService {
         String orderNo = String.format("RO%s%06d", date, sequence);
         repairOrder.setOrderNo(orderNo);
         repairOrder.setOwnerId(ownerId);
-        repairOrder.setStatus("PENDING_DISPATCH");
+        repairOrder.setStatus(RepairOrderStatus.PENDING_DISPATCH.name());
         repairOrder.setType(request.getType());
         repairOrder.setDescription(request.getDescription());
         repairOrder.setUrgency(request.getUrgency());
@@ -66,7 +67,7 @@ public class RepairOrderServiceImpl implements RepairOrderService {
         RepairOrderLog repairOrderLog = new RepairOrderLog();
         repairOrderLog.setOrderId(repairOrder.getId());
         repairOrderLog.setFromStatus(null);
-        repairOrderLog.setToStatus("PENDING_DISPATCH"); // 设置为工单的初始状态
+        repairOrderLog.setToStatus(RepairOrderStatus.PENDING_DISPATCH.name()); // 设置为工单的初始状态
         repairOrderLog.setOperatorId(ownerId);
         repairOrderLog.setRemark("工单创建");
         repairOrderLog.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
@@ -77,9 +78,11 @@ public class RepairOrderServiceImpl implements RepairOrderService {
     }
 
     /**
-     * 查询业主所有的报修单
+     * 分页查询业主所有的报修单
      * @param ownerId 用户ID
-     * @return List<RepairOrder> 业主的报修单列表
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return PageInfo<RepairOrder> 业主的报修单分页列表
      */
     @Override
     public PageInfo<RepairOrder> getOrdersByOwnerId(Long ownerId, Integer pageNum, Integer pageSize) {
@@ -103,5 +106,36 @@ public class RepairOrderServiceImpl implements RepairOrderService {
                 .eq(RepairOrder::getId, orderId)
                 .eq(RepairOrder::getOwnerId, ownerId);
         return repairOrderMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 管理员派送订单
+     * @param orderId 工单ID
+     * @param managerId 管理员ID
+     * @param workerId 工人ID
+     * @return RepairOrder 派送后的工单对象
+     */
+    @Override
+    @Transactional
+    public RepairOrder dispatchOrder(Long orderId, Long managerId, Long workerId) {
+        RepairOrder repairOrder = repairOrderMapper.selectById(orderId);
+        if (repairOrder == null) {
+            throw new BusinessException("工单不存在");
+        }
+        repairOrder.setWorkerId(workerId);
+        repairOrder.setStatus(RepairOrderStatus.DISPATCHED.name());
+        repairOrderMapper.dispatchOrder(repairOrder);
+
+        // 保存日志
+        RepairOrderLog repairOrderLog = new RepairOrderLog();
+        repairOrderLog.setOrderId(orderId);
+        repairOrderLog.setFromStatus(RepairOrderStatus.PENDING_DISPATCH.name());
+        repairOrderLog.setToStatus(RepairOrderStatus.DISPATCHED.name());
+        repairOrderLog.setOperatorId(managerId);
+        repairOrderLog.setRemark("管理员派单");
+        repairOrderLog.setCreatedAt(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+        repairOrderLogMapper.insert(repairOrderLog);
+
+        return repairOrder;
     }
 }
