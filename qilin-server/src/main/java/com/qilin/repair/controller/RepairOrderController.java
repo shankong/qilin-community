@@ -15,8 +15,9 @@ import com.github.pagehelper.PageInfo;
 import com.qilin.repair.dto.request.CreateRepairOrderRequest;
 import com.qilin.repair.entity.RepairOrder;
 import com.qilin.repair.service.RepairOrderService;
-import com.qilin.repair.vo.RepairOrderVO.CreateRepairOrderVO;
-import com.qilin.repair.vo.RepairOrderVO.DispatchRepairOrderVO;
+import com.qilin.repair.vo.DispatchRepairOrderVO.CreateRepairOrderVO;
+import com.qilin.repair.vo.DispatchRepairOrderVO.DispatchRepairOrderResultVO;
+import com.qilin.repair.vo.DispatchRepairOrderVO.PendingRepairOrderVO;
 import com.qilin.system.common.Result;
 
 import jakarta.annotation.Resource;
@@ -84,22 +85,79 @@ public class RepairOrderController {
     }
 
     /**
-     * 管理员派送订单
-     * 只有拥有MANAGER角色的用户才能派送订单
-     * @param orderId 报修单ID
-     * @param workerId 维修工ID
-     * @param authentication 当前用户的认证信息
-     * @return 返回派送后的报修单对象
+     * 查询待接单报修单列表
+     * 只有拥有WORKER角色的用户才能查询待接单报修单
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 返回待接单报修单分页列表
      */
-    @PreAuthorize("hasRole('MANAGER')")
-    @PutMapping("/{id}/dispatch")
-    public Result<DispatchRepairOrderVO> dispatchRepairOrder(
-        @PathVariable("id") Long orderId,
-        @RequestParam Long workerId,
+    @PreAuthorize("hasRole('WORKER')")
+    @GetMapping("/pool")
+    public Result<PageInfo<PendingRepairOrderVO>> getPendingOrders(
+        @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
+        @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+        return Result.success(repairOrderService.getPendingOrders(pageNum, pageSize));
+    }
+
+    /**
+     * 维修工接单
+     * 只有拥有WORKER角色的用户才能接单
+     * @param id 报修单ID
+     * @param authentication 当前用户的认证信息
+     * @return 返回接单后的报修单对象
+     */
+    @PreAuthorize("hasRole('WORKER')")
+    @PutMapping("/{id}/accept")
+    public Result<DispatchRepairOrderResultVO> acceptOrder(
+        @PathVariable Long id,
         Authentication authentication) {
-        Long managerId = (Long) authentication.getPrincipal();
-        RepairOrder order = repairOrderService.dispatchOrder(orderId, managerId, workerId);
-        return Result.success(new DispatchRepairOrderVO(
+        Long workerId = (Long) authentication.getPrincipal();
+        RepairOrder order = repairOrderService.acceptOrder(id, workerId);
+        return Result.success(new DispatchRepairOrderResultVO(
+            order.getId(),
+            order.getOrderNo(),
+            order.getStatus(),
+            order.getWorkerId()
+        ));
+    }
+
+    /**
+     * 维修工开始维修
+     * 只有拥有WORKER角色的用户才能开始维修
+     * @param id 报修单ID
+     * @param authentication 当前用户的认证信息
+     * @return 返回开始维修后的报修单对象
+     */
+    @PreAuthorize("hasRole('WORKER')")
+    @PutMapping("/{id}/start")
+    public Result<DispatchRepairOrderResultVO> startOrder(
+        @PathVariable Long id,
+        Authentication authentication) {
+        Long workerId = (Long) authentication.getPrincipal();
+        RepairOrder order = repairOrderService.startOrder(id, workerId);
+        return Result.success(new DispatchRepairOrderResultVO(
+            order.getId(),
+            order.getOrderNo(),
+            order.getStatus(),
+            order.getWorkerId()
+        ));
+    }
+
+    /**
+     * 维修工完成处理
+     * 只有拥有WORKER角色的用户才能完成处理
+     * @param id 报修单ID
+     * @param authentication 当前用户的认证信息
+     * @return 返回处理后的报修单对象
+     */
+    @PreAuthorize("hasRole('WORKER')")
+    @PutMapping("/{id}/finish")
+    public Result<DispatchRepairOrderResultVO> finishOrder(
+        @PathVariable Long id,
+        Authentication authentication) {
+        Long workerId = (Long) authentication.getPrincipal();
+        RepairOrder order = repairOrderService.finishOrder(id, workerId);
+        return Result.success(new DispatchRepairOrderResultVO(
             order.getId(),
             order.getOrderNo(),
             order.getStatus(),
